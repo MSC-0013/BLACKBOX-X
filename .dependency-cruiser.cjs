@@ -79,6 +79,17 @@ module.exports = {
       },
     },
     {
+      name: 'calibration-allowed-deps',
+      comment: 'packages/calibration must only depend on contracts, statistics, workload-spec, simulation-engine, and comparison',
+      severity: 'error',
+      from: {
+        path: '^packages/calibration',
+      },
+      to: {
+        path: '^packages/(?!calibration|contracts|statistics|workload-spec|simulation-engine|comparison)',
+      },
+    },
+    {
       name: 'domain-layer-purity',
       comment: 'packages/domain must only import from contracts',
       severity: 'error',
