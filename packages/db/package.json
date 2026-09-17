@@ -1,0 +1,26 @@
+{
+  "name": "@blackbox-x/db",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src/",
+    "db:migrate": "node --import tsx src/migrate.ts"
+  },
+  "dependencies": {
+    "@blackbox-x/config-server": "*",
+    "@blackbox-x/logging": "*",
+    "drizzle-orm": "0.45.2",
+    "mysql2": "3.12.0"
+  },
+  "devDependencies": {
+    "@types/node": "22.13.9",
+    "drizzle-kit": "0.30.5",
+    "tsx": "4.19.3",
+    "typescript": "5.9.3"
+  }
+}

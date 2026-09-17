@@ -1,0 +1,40 @@
+{
+  "name": "blackbox-x",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Deterministic, calibrated discrete-event simulation platform for production backend capacity, performance, failure propagation, and architecture validation",
+  "type": "module",
+  "packageManager": "npm@11.6.2",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev --parallel",
+    "lint": "eslint .",
+    "dep-cruiser": "depcruise --config .dependency-cruiser.cjs packages apps",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "test:unit": "vitest run",
+    "db:migrate": "turbo run db:migrate --filter=@blackbox-x/db",
+    "verify:m0": "node --import tsx tests/gates/verify-m0.ts",
+    "format": "prettier --write \"**/*.{ts,tsx,js,json,md,css}\"",
+    "format:check": "prettier --check \"**/*.{ts,tsx,js,json,md,css}\""
+  },
+  "devDependencies": {
+    "@types/node": "22.13.9",
+    "dependency-cruiser": "18.3.1",
+    "eslint": "9.22.0",
+    "prettier": "3.5.3",
+    "tsx": "4.19.3",
+    "turbo": "2.10.13",
+    "typescript": "5.9.3",
+    "typescript-eslint": "8.70.0",
+    "vitest": "3.0.7"
+  },
+  "engines": {
+    "node": ">=24.12.0 <=24.21.0",
+    "npm": ">=11.6.2 <=11.19.1"
+  }
+}
