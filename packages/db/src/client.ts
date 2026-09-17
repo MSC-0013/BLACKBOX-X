@@ -8,6 +8,7 @@ import * as benchmarksSchema from './schema/benchmarks.js';
 import * as capacitySchema from './schema/capacity.js';
 import * as calibrationSchema from './schema/calibration.js';
 import * as loadGeneratorsSchema from './schema/load_generators.js';
+import * as leasesSchema from './schema/leases.js';
 
 export function parseDatabaseUrl(url: string) {
   const parsed = new URL(url);
@@ -36,7 +37,8 @@ export const pool = mysql.createPool({
 });
 
 export const db = drizzle(pool, {
-  schema: { ...coreSchema, ...topologySchema, ...workloadsSchema, ...benchmarksSchema, ...capacitySchema, ...calibrationSchema, ...loadGeneratorsSchema },
+  schema: { ...coreSchema, ...topologySchema, ...workloadsSchema, ...benchmarksSchema, ...capacitySchema, ...calibrationSchema, ...loadGeneratorsSchema, ...leasesSchema },
   mode: 'default',
 });
+
 

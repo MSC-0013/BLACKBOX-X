@@ -101,6 +101,18 @@ module.exports = {
       },
     },
     {
+      name: 'execution-leases-allowed-deps',
+      comment: 'packages/execution-leases must only depend on contracts, logging, and db',
+      severity: 'error',
+      from: {
+        path: '^packages/execution-leases',
+      },
+      to: {
+        path: '^packages/(?!execution-leases|contracts|logging|db)',
+      },
+    },
+
+    {
       name: 'domain-layer-purity',
       comment: 'packages/domain must only import from contracts',
       severity: 'error',
