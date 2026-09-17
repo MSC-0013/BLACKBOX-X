@@ -24,6 +24,17 @@ module.exports = {
       },
     },
     {
+      name: 'domain-layer-purity',
+      comment: 'packages/domain must only import from contracts',
+      severity: 'error',
+      from: {
+        path: '^packages/domain',
+      },
+      to: {
+        path: '^packages/(?!contracts|domain)',
+      },
+    },
+    {
       name: 'config-client-trust-boundary',
       comment: 'packages/config-client must never import config-server or server code',
       severity: 'error',

@@ -10,6 +10,7 @@ import {
   checkAllDependencies,
   type SystemDependenciesStatus,
 } from './health.js';
+import { topologyRoutes } from './routes/topology.js';
 
 const log = createLogger('blackbox-api');
 
@@ -31,6 +32,8 @@ export function buildServer(options: ServerOptions = {}): FastifyInstance {
   app.register(cors, {
     origin: true,
   });
+
+  app.register(topologyRoutes);
 
   // Global error handler adhering to Part 8.11 standard error envelope
   app.setErrorHandler((error, request, reply) => {

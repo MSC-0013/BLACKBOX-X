@@ -15,6 +15,7 @@
     "@blackbox-x/config-server": "*",
     "@blackbox-x/contracts": "*",
     "@blackbox-x/db": "*",
+    "@blackbox-x/domain": "*",
     "@blackbox-x/logging": "*",
     "@blackbox-x/observability": "*",
     "@blackbox-x/security": "*",

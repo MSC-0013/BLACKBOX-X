@@ -1,7 +1,8 @@
 import mysql from 'mysql2/promise';
 import { drizzle } from 'drizzle-orm/mysql2';
 import { serverConfig } from '@blackbox-x/config-server';
-import * as schema from './schema/core.js';
+import * as coreSchema from './schema/core.js';
+import * as topologySchema from './schema/topology.js';
 
 export function parseDatabaseUrl(url: string) {
   const parsed = new URL(url);
@@ -29,4 +30,7 @@ export const pool = mysql.createPool({
   charset: 'utf8mb4',
 });
 
-export const db = drizzle(pool, { schema, mode: 'default' });
+export const db = drizzle(pool, {
+  schema: { ...coreSchema, ...topologySchema },
+  mode: 'default',
+});
