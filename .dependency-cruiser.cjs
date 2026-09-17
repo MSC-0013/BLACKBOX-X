@@ -111,6 +111,18 @@ module.exports = {
         path: '^packages/(?!execution-leases|contracts|logging|db)',
       },
     },
+    {
+      name: 'chaos-engine-allowed-deps',
+      comment: 'packages/chaos-engine must only depend on contracts, domain, logging, statistics, workload-spec, and simulation-engine',
+      severity: 'error',
+      from: {
+        path: '^packages/chaos-engine',
+      },
+      to: {
+        path: '^packages/(?!chaos-engine|contracts|domain|logging|statistics|workload-spec|simulation-engine)',
+      },
+    },
+
 
     {
       name: 'domain-layer-purity',
