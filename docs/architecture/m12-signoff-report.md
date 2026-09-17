@@ -2,7 +2,7 @@
 
 **Date:** 2026-09-17  
 **Status:** FULL PLATFORM SIGN-OFF COMPLETE — PRODUCTION-READY  
-**Infrastructure State:** Real MySQL 8.4 (`3308`), Redis 7.4 (`6380`), Apache Kafka 4.x KRaft (`9092`), MinIO S3 (`9000`)  
+**Infrastructure State:** Real MySQL 8.4 (`3308`), Redis 7.4 (`6380`), Apache Kafka 4.3.1 KRaft (`9092`), MinIO S3 (`9000`)  
 **Mock Status:** 0 mocked infrastructure adapters in `tests/gates/**`  
 
 ---
@@ -15,23 +15,24 @@ With the successful execution of `tests/gates/verify-m12.ts`, all milestones **M
 
 ---
 
-## 2. Milestone Verification Matrix
+## 2. Milestone Verification Matrix (Canonical Alignment)
 
-| Milestone | Scope | Gate Script | Assertions | Result | Execution Evidence |
-| :--- | :--- | :--- | :---: | :---: | :--- |
-| **M0** | Monorepo, Strict TypeScript, Docker Compose, Version-Pin ADR | `verify:m0` | 7/7 | **PASSED** | Redis 7.4-alpine, Kafka KRaft 4.x, Node 24.12, Turbo 2.10 |
-| **M1** | Database Migrations, Advisory Locks, Seed Baselines | `verify:m1` | 7/7 | **PASSED** | MySQL 8.4 advisory lock `bbx_migrations_lock`, 10 migrations idempotent |
-| **M2** | Domain Graph Validation & Cycle Detection | `verify:m2` | 7/7 | **PASSED** | Tarjan SCC synchronous cycle rejection, async event edges permitted |
-| **M3** | Discrete-Event Engine & Deterministic State Hashing | `verify:m3` | 7/7 | **PASSED** | Total ordering `(timeUs, priority, seq)`, SHA-256 canonical state hash |
-| **M4** | Real Benchmark Execution & Statistical Comparison | `verify:m4` | 7/7 | **PASSED** | KS 2-sample, Wasserstein distance, prediction interval containment |
-| **M5** | Capacity Search & Monotonicity Fallback | `verify:m5` | 7/7 | **PASSED** | Coarse monotonicity pre-check, Kneedle knee-point, adaptive sweep fallback |
-| **M6** | Closed-Loop Calibration & Held-Out Run Validation | `verify:m6` | 7/7 | **PASSED** | Coordinate descent, run-level split (Run 1 vs Run 2), out-of-sample SLA |
-| **M7** | Distributed Load Orchestration & Worker Pools | `verify:m7` | 7/7 | **PASSED** | Kafka commands, Redis telemetry, reference quantile cross-check |
-| **M8** | Distributed Execution Leases & Outbox Pattern | `verify:m8` | 7/7 | **PASSED** | Authoritative MySQL epoch fencing, outbox relay crash-window idempotency |
-| **M9** | Chaos Injection, Blast Radius & Resilience Score | `verify:m9` | 7/7 | **PASSED** | Cycle-safe reverse-BFS graph traversal, simulated MTTR, resilience score |
-| **M10** | Cryptographic Object Storage & Tenant Isolation | `verify:m10` | 7/7 | **PASSED** | MinIO S3, content-addressed checkpoints, cross-tenant negative guard |
-| **M11** | Analytics API, Prometheus Exporter & Reporting | `verify:m11` | 7/7 | **PASSED** | Low-cardinality Prometheus metrics, structured campaign reports, visualizer |
-| **M12** | Production Hardening & Full Regression Sign-Off | `verify:m12` | 7/7 | **PASSED** | 5-tenant stress, worker crash failover, full 12-gate regression sweep |
+| Milestone | Scope & Title | Primary Packages | Gate Script | Assertions | Result | Execution Evidence |
+| :--- | :--- | :--- | :--- | :---: | :---: | :--- |
+| **M0** | Foundation & Security-Boundary Infrastructure | `contracts, logging, config-*, security, observability, db` | `verify:m0` | 7/7 | **PASSED** | Redis 7.4-alpine, Kafka 4.3.1 KRaft, Node 24.12, Turbo 2.10 |
+| **M1** | Domain & Typed Topology | `domain, db, apps/blackbox-api` | `verify:m1` | 7/7 | **PASSED** | Typed nodes/edges, cycle classification, operations & modes |
+| **M2** | Substream Statistics & Workload Specification | `statistics, workload-spec, db` | `verify:m2` | 7/7 | **PASSED** | SplitMix64 substreams, versioned ICDF, prediction intervals |
+| **M3** | Deterministic Discrete-Event Simulation Engine | `simulation-engine` | `verify:m3` | 7/7 | **PASSED** | Total ordering `(timeUs, priority, seq)`, SHA-256 canonical state hash |
+| **M4** | Real Benchmark Driver & Statistical Comparison | `comparison, db, apps/blackbox-api` | `verify:m4` | 7/7 | **PASSED** | Live Fastify benchmark, KS test, Wasserstein, prediction containment |
+| **M5** | Model-Estimated Capacity Search & Bottleneck Attribution | `capacity-search, db` | `verify:m5` | 7/7 | **PASSED** | Coarse monotonicity pre-check, Kneedle knee-point, adaptive sweep fallback |
+| **M6** | Closed-Loop Parameter Calibration & Model Lifecycle | `calibration, db, apps/blackbox-api` | `verify:m6` | 7/7 | **PASSED** | Coordinate descent, run-level train/validation split (Run 1 vs Run 2) |
+| **M7** | Distributed Load Orchestration & Worker Coordination | `load-orchestrator, db` | `verify:m7` | 7/7 | **PASSED** | Kafka commands, Redis telemetry, reference quantile cross-check |
+| **M8** | Execution Leases, Epoch Fencing & Idempotent Outbox/Inbox | `execution-leases, db` | `verify:m8` | 7/7 | **PASSED** | Authoritative MySQL epoch fencing, outbox relay crash-window idempotency |
+| **M9** | Simulation Chaos & Failure Propagation | `chaos-engine, db` | `verify:m9` | 7/7 | **PASSED** | Cycle-safe reverse-BFS graph traversal, simulated MTTR, resilience score |
+| **M10** | Object Storage, Artifact Integrity & Lifecycle | `storage, db` | `verify:m10` | 7/7 | **PASSED** | MinIO S3, content-addressed checkpoints, cross-tenant negative guard |
+| **M11** | Analytics Dashboard API, Prometheus Metrics & Reporting | `apps/blackbox-api, observability, db, storage` | `verify:m11` | 7/7 | **PASSED** | Low-cardinality Prometheus metrics, structured campaign reports, visualizer |
+| **M12** | Production Hardening, Multi-Tenant Regression & Full Sign-Off | Platform-wide (all 19 packages + `blackbox-api`) | `verify:m12` | 7/7 | **PASSED** | 5-tenant stress, worker crash failover, full 12-gate regression sweep |
+
 
 ---
 

@@ -76,7 +76,7 @@ services:
   # Profiles: foundation, events, full
   # ===========================================================================
   kafka:
-    image: apache/kafka:latest
+    image: apache/kafka:4.3.1
     container_name: blackbox-kafka
     profiles:
       - foundation
@@ -143,7 +143,7 @@ services:
   # Profile: events-ha
   # ===========================================================================
   kafka-ha-1:
-    image: apache/kafka:latest
+    image: apache/kafka:4.3.1
     container_name: blackbox-kafka-ha-1
     profiles:
       - events-ha
@@ -166,7 +166,7 @@ services:
       - blackbox-net
 
   kafka-ha-2:
-    image: apache/kafka:latest
+    image: apache/kafka:4.3.1
     container_name: blackbox-kafka-ha-2
     profiles:
       - events-ha
@@ -189,7 +189,7 @@ services:
       - blackbox-net
 
   kafka-ha-3:
-    image: apache/kafka:latest
+    image: apache/kafka:4.3.1
     container_name: blackbox-kafka-ha-3
     profiles:
       - events-ha
