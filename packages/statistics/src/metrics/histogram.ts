@@ -118,3 +118,6 @@ export class LogLinearHistogram {
     return this.counts;
   }
 }
+
+export const Histogram = LogLinearHistogram;
+export type Histogram = LogLinearHistogram;

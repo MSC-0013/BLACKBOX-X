@@ -46,6 +46,17 @@ module.exports = {
       },
     },
     {
+      name: 'simulation-engine-allowed-deps',
+      comment: 'packages/simulation-engine must only depend on contracts, domain, statistics, and workload-spec',
+      severity: 'error',
+      from: {
+        path: '^packages/simulation-engine',
+      },
+      to: {
+        path: '^packages/(?!simulation-engine|contracts|domain|statistics|workload-spec)',
+      },
+    },
+    {
       name: 'domain-layer-purity',
       comment: 'packages/domain must only import from contracts',
       severity: 'error',
