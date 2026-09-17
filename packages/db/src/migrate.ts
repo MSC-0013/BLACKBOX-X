@@ -97,6 +97,8 @@ export async function runMigrations(connectionString = serverConfig.DATABASE_URL
       const fullPath = path.join(migrationsDir, file);
       const rawContent = fs.readFileSync(fullPath, 'utf8').replace(/^\uFEFF/, '');
       const checksum = createHash('sha256').update(rawContent).digest('hex');
+      const checksumLf = createHash('sha256').update(rawContent.replace(/\r\n/g, '\n')).digest('hex');
+      const checksumCrlf = createHash('sha256').update(rawContent.replace(/\r?\n/g, '\r\n')).digest('hex');
 
       const [rows] = await connection.query<mysql.RowDataPacket[]>(
         'SELECT checksum FROM _migrations WHERE name = ?',
@@ -105,7 +107,11 @@ export async function runMigrations(connectionString = serverConfig.DATABASE_URL
 
       if (rows.length > 0) {
         const storedChecksum = rows[0].checksum;
-        if (storedChecksum !== checksum) {
+        const matches =
+          storedChecksum === checksum ||
+          storedChecksum === checksumLf ||
+          storedChecksum === checksumCrlf;
+        if (!matches) {
           throw new Error(
             `Migration checksum mismatch for ${file}! Stored: ${storedChecksum}, Current: ${checksum}. ` +
               'Migration history cannot be modified after application.',
@@ -114,6 +120,7 @@ export async function runMigrations(connectionString = serverConfig.DATABASE_URL
         log.info({ file }, 'Migration already applied (checksum verified)');
         continue;
       }
+
 
       log.info({ file }, 'Applying migration...');
       const startMs = Date.now();

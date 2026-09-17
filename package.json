@@ -28,6 +28,7 @@
     "verify:m7": "node --import tsx tests/gates/verify-m7.ts",
     "verify:m8": "node --import tsx tests/gates/verify-m8.ts",
     "verify:m9": "node --import tsx tests/gates/verify-m9.ts",
+    "verify:m10": "node --import tsx tests/gates/verify-m10.ts",
     "format": "prettier --write \"**/*.{ts,tsx,js,json,md,css}\"",
     "format:check": "prettier --check \"**/*.{ts,tsx,js,json,md,css}\""
   },

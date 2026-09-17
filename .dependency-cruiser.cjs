@@ -122,6 +122,18 @@ module.exports = {
         path: '^packages/(?!chaos-engine|contracts|domain|logging|statistics|workload-spec|simulation-engine)',
       },
     },
+    {
+      name: 'storage-allowed-deps',
+      comment: 'packages/storage must only depend on contracts, logging, and db',
+      severity: 'error',
+      from: {
+        path: '^packages/storage',
+      },
+      to: {
+        path: '^packages/(?!storage|contracts|logging|db)',
+      },
+    },
+
 
 
     {
