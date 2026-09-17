@@ -10,7 +10,6 @@ import {
   ThreadPoolResource,
   ConnectionPoolResource,
 } from '@blackbox-x/simulation-engine';
-import { WorkloadSpecDefinition } from '@blackbox-x/workload-spec';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);

@@ -57,6 +57,17 @@ module.exports = {
       },
     },
     {
+      name: 'comparison-allowed-deps',
+      comment: 'packages/comparison must only depend on contracts, statistics, workload-spec, and simulation-engine',
+      severity: 'error',
+      from: {
+        path: '^packages/comparison',
+      },
+      to: {
+        path: '^packages/(?!comparison|contracts|statistics|workload-spec|simulation-engine)',
+      },
+    },
+    {
       name: 'domain-layer-purity',
       comment: 'packages/domain must only import from contracts',
       severity: 'error',
