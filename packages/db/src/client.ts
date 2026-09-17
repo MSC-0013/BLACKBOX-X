@@ -3,6 +3,7 @@ import { drizzle } from 'drizzle-orm/mysql2';
 import { serverConfig } from '@blackbox-x/config-server';
 import * as coreSchema from './schema/core.js';
 import * as topologySchema from './schema/topology.js';
+import * as workloadsSchema from './schema/workloads.js';
 
 export function parseDatabaseUrl(url: string) {
   const parsed = new URL(url);
@@ -31,6 +32,6 @@ export const pool = mysql.createPool({
 });
 
 export const db = drizzle(pool, {
-  schema: { ...coreSchema, ...topologySchema },
+  schema: { ...coreSchema, ...topologySchema, ...workloadsSchema },
   mode: 'default',
 });

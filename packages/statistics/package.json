@@ -1,0 +1,19 @@
+{
+  "name": "@blackbox-x/statistics",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src/",
+    "test:unit": "vitest run"
+  },
+  "devDependencies": {
+    "@types/node": "22.13.9",
+    "typescript": "5.9.3",
+    "vitest": "3.0.7"
+  }
+}

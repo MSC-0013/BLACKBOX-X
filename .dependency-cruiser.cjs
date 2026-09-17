@@ -24,6 +24,28 @@ module.exports = {
       },
     },
     {
+      name: 'statistics-zero-workspace-deps',
+      comment: 'packages/statistics must have zero workspace dependencies',
+      severity: 'error',
+      from: {
+        path: '^packages/statistics',
+      },
+      to: {
+        path: '^packages/(?!statistics)',
+      },
+    },
+    {
+      name: 'workload-spec-allowed-deps',
+      comment: 'packages/workload-spec must only depend on contracts and statistics',
+      severity: 'error',
+      from: {
+        path: '^packages/workload-spec',
+      },
+      to: {
+        path: '^packages/(?!workload-spec|contracts|statistics)',
+      },
+    },
+    {
       name: 'domain-layer-purity',
       comment: 'packages/domain must only import from contracts',
       severity: 'error',

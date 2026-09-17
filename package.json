@@ -20,6 +20,7 @@
     "db:migrate": "turbo run db:migrate --filter=@blackbox-x/db",
     "verify:m0": "node --import tsx tests/gates/verify-m0.ts",
     "verify:m1": "node --import tsx tests/gates/verify-m1.ts",
+    "verify:m2": "node --import tsx tests/gates/verify-m2.ts",
     "format": "prettier --write \"**/*.{ts,tsx,js,json,md,css}\"",
     "format:check": "prettier --check \"**/*.{ts,tsx,js,json,md,css}\""
   },
