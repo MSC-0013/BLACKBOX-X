@@ -28,6 +28,11 @@ export class TelemetryAggregator {
     return telemetries;
   }
 
+  async getTelemetryHistory(runId: string): Promise<WorkerTelemetry[]> {
+    const raw = await this.redis.lrange(`blackbox:telemetry_history:${runId}`, 0, -1);
+    return raw.map((r) => JSON.parse(r) as WorkerTelemetry);
+  }
+
   /**
    * Reference quantile aggregation for Item 21.
    * Given multiple worker latency arrays, merges them and computes quantiles

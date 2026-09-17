@@ -165,9 +165,9 @@ async function runM7Gate() {
     console.log('✓ Multi-worker concurrent load execution verified against live endpoint\n');
 
     // -------------------------------------------------------------------------
-    // [4/7] Real-Time Redis Telemetry Verification
+    // [4/7] Real-Time Redis Telemetry Verification & Cadence Check
     // -------------------------------------------------------------------------
-    console.log('[4/7] Querying real-time worker telemetry keys from Redis...');
+    console.log('[4/7] Querying real-time worker telemetry keys and publication cadence from Redis...');
     const retrievedTelemetries = await aggregator.getWorkerTelemetries(coordinatedRunId);
     assert.strictEqual(
       retrievedTelemetries.length,
@@ -175,7 +175,26 @@ async function runM7Gate() {
       'Must retrieve telemetry for exactly 2 workers from Redis',
     );
     console.log(`      Retrieved ${retrievedTelemetries.length} telemetry records from Redis key pattern`);
-    console.log('✓ Real-time Redis worker telemetry verified\n');
+
+    // Verify periodic telemetry cadence against configured 500ms target
+    const history = await aggregator.getTelemetryHistory(coordinatedRunId);
+    assert.ok(history.length >= 4, 'Must record multiple periodic telemetry snapshots during load test');
+    const workerAlphaSnapshots = history.filter((s) => s.workerId === 'worker-alpha');
+    if (workerAlphaSnapshots.length >= 2) {
+      const intervals: number[] = [];
+      for (let i = 1; i < workerAlphaSnapshots.length; i++) {
+        const tPrev = new Date(workerAlphaSnapshots[i - 1]!.timestamp).getTime();
+        const tCurr = new Date(workerAlphaSnapshots[i]!.timestamp).getTime();
+        intervals.push(tCurr - tPrev);
+      }
+      const avgInterval = intervals.reduce((a, b) => a + b, 0) / intervals.length;
+      assert.ok(
+        avgInterval >= 300 && avgInterval <= 850,
+        `Observed inter-emission cadence (${avgInterval.toFixed(1)}ms) must be within tolerance of configured 500ms cadence`,
+      );
+      console.log(`      Verified periodic telemetry cadence: ${avgInterval.toFixed(0)}ms (configured target: 500ms)`);
+    }
+    console.log('✓ Real-time Redis worker telemetry and periodic publication cadence verified\n');
 
     // -------------------------------------------------------------------------
     // [5/7] Cluster-Wide Histogram Merging & Quantile Accuracy

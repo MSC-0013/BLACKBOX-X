@@ -19,7 +19,7 @@ With the successful execution of `tests/gates/verify-m12.ts`, all milestones **M
 
 | Milestone | Scope & Title | Primary Packages | Gate Script | Assertions | Result | Execution Evidence |
 | :--- | :--- | :--- | :--- | :---: | :---: | :--- |
-| **M0** | Foundation & Security-Boundary Infrastructure | `contracts, logging, config-*, security, observability, db` | `verify:m0` | 7/7 | **PASSED** | Redis 7.4-alpine, Kafka 4.3.1 KRaft, Node 24.12, Turbo 2.10 |
+| **M0** | Foundation & Security-Boundary Infrastructure | `contracts, logging, config-*, security, observability, db` | `verify:m0` | 8/8 | **PASSED** | Redis 7.4-alpine, Kafka 4.3.1 KRaft, Node 24.12, Turbo 2.10, OpenTelemetry SDK |
 | **M1** | Domain & Typed Topology | `domain, db, apps/blackbox-api` | `verify:m1` | 7/7 | **PASSED** | Typed nodes/edges, cycle classification, operations & modes |
 | **M2** | Substream Statistics & Workload Specification | `statistics, workload-spec, db` | `verify:m2` | 7/7 | **PASSED** | SplitMix64 substreams, versioned ICDF, prediction intervals |
 | **M3** | Deterministic Discrete-Event Simulation Engine | `simulation-engine` | `verify:m3` | 7/7 | **PASSED** | Total ordering `(timeUs, priority, seq)`, SHA-256 canonical state hash |

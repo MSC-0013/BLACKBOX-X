@@ -64,7 +64,7 @@ async function runM10Gate() {
     console.log('✓ MinIO object storage bucket initialized\n');
 
     // -------------------------------------------------------------------------
-    // [2/7] Uploading Large Simulation State Checkpoint
+    // [2/7] Uploading Large Simulation State Checkpoint (Content-Addressed)
     // -------------------------------------------------------------------------
     console.log('[2/7] Uploading simulation state checkpoint with content-addressable SHA-256...');
     const [tenant] = await db.select().from(tenants).limit(1);
@@ -81,22 +81,31 @@ async function runM10Gate() {
       canonicalStateHash: 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
     });
 
-    const objectKey = `traces/tenant-${tenant.id}/sim-checkpoint-${Date.now()}.json`;
-    const artifactRecord = await storageService.uploadArtifact({
+    const artifactRecord = await storageService.uploadContentAddressedArtifact({
       tenantId: tenant.id,
-      objectKey,
       content: traceData,
-      contentType: 'application/json',
       metadata: {
         checkpointType: 'FULL_STATE',
         eventCount: 125000,
       },
     });
 
+    const objectKey = artifactRecord.objectKey;
     assert.ok(artifactRecord.id.startsWith('art-'));
-    assert.strictEqual(artifactRecord.objectKey, objectKey);
+    assert.strictEqual(artifactRecord.objectKey, `traces/tenant-${tenant.id}/${artifactRecord.sha256Checksum}.json`);
     assert.ok(artifactRecord.sha256Checksum.length === 64);
     assert.ok(artifactRecord.sizeBytes > 0);
+
+    // Re-uploading identical content resolves to the exact same content-addressed key
+    const duplicateRecord = await storageService.uploadContentAddressedArtifact({
+      tenantId: tenant.id,
+      content: traceData,
+      metadata: {
+        checkpointType: 'FULL_STATE',
+        eventCount: 125000,
+      },
+    });
+    assert.strictEqual(duplicateRecord.objectKey, artifactRecord.objectKey, 'Content-addressed re-upload must be idempotent');
 
     console.log(`      Uploaded Artifact: ${artifactRecord.objectKey}`);
     console.log(`      Size:              ${artifactRecord.sizeBytes} bytes`);
