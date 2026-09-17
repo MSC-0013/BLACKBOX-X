@@ -90,6 +90,17 @@ module.exports = {
       },
     },
     {
+      name: 'load-orchestrator-allowed-deps',
+      comment: 'packages/load-orchestrator must only depend on contracts, logging, statistics, workload-spec, and comparison',
+      severity: 'error',
+      from: {
+        path: '^packages/load-orchestrator',
+      },
+      to: {
+        path: '^packages/(?!load-orchestrator|contracts|logging|statistics|workload-spec|comparison)',
+      },
+    },
+    {
       name: 'domain-layer-purity',
       comment: 'packages/domain must only import from contracts',
       severity: 'error',
