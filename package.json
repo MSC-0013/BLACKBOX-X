@@ -23,6 +23,7 @@
     "verify:m2": "node --import tsx tests/gates/verify-m2.ts",
     "verify:m3": "node --import tsx tests/gates/verify-m3.ts",
     "verify:m4": "node --import tsx tests/gates/verify-m4.ts",
+    "verify:m5": "node --import tsx tests/gates/verify-m5.ts",
     "format": "prettier --write \"**/*.{ts,tsx,js,json,md,css}\"",
     "format:check": "prettier --check \"**/*.{ts,tsx,js,json,md,css}\""
   },

@@ -68,6 +68,17 @@ module.exports = {
       },
     },
     {
+      name: 'capacity-search-allowed-deps',
+      comment: 'packages/capacity-search must only depend on contracts, statistics, workload-spec, and simulation-engine',
+      severity: 'error',
+      from: {
+        path: '^packages/capacity-search',
+      },
+      to: {
+        path: '^packages/(?!capacity-search|contracts|statistics|workload-spec|simulation-engine)',
+      },
+    },
+    {
       name: 'domain-layer-purity',
       comment: 'packages/domain must only import from contracts',
       severity: 'error',
