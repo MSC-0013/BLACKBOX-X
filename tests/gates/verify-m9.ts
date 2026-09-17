@@ -43,7 +43,7 @@ function verifyNoMockInGates(dir: string): void {
 
 async function runM9Gate() {
   console.log('===============================================================');
-  console.log(' BLACKBOX-X M9 GATE: Chaos Injection & Failure Propagation     ');
+  console.log(' BLACKBOX-X M9 GATE: Simulation Chaos & Failure Propagation    ');
   console.log('===============================================================\n');
 
   // Verify No-Mock Rule

@@ -178,9 +178,9 @@ async function runM8Gate() {
     console.log('✓ Outbox relay successfully published events to Kafka and updated MySQL\n');
 
     // -------------------------------------------------------------------------
-    // [6/7] Inbox Consumer Exactly-Once Idempotency
+    // [6/7] Idempotent At-Least-Once Processing with Transactional Deduplication
     // -------------------------------------------------------------------------
-    console.log('[6/7] Testing InboxConsumer idempotency and duplicate deduplication...');
+    console.log('[6/7] Testing InboxConsumer idempotent at-least-once processing with transactional deduplication...');
     const testEventId = `evt-inbox-test-${Date.now()}`;
     const consumerGroup = 'analytics-workers';
     let executionCounter = 0;
@@ -202,7 +202,7 @@ async function runM8Gate() {
     assert.strictEqual(executionCounter, 1, 'Execution counter must NOT increment on duplicate');
 
     console.log(`      Handler Executions: ${executionCounter} (1 expected despite 2 deliveries)`);
-    console.log('✓ Exactly-once inbox deduplication verified\n');
+    console.log('✓ Idempotent at-least-once processing with transactional deduplication (effectively-once DB side-effect) verified\n');
 
     // -------------------------------------------------------------------------
     // [7/7] Architecture Boundary Validation via Dependency Cruiser

@@ -111,22 +111,46 @@ async function runM6Gate() {
     console.log('✓ Coordinate descent optimizer converged with significant loss reduction\n');
 
     // -------------------------------------------------------------------------
-    // [3/7] Real Benchmark Baseline Execution
+    // [3/7] Real Benchmark Baseline Execution (Train/Calibration & Validation Splits)
     // -------------------------------------------------------------------------
-    console.log('[3/7] Executing real benchmark against live server (N=300 requests, concurrency=8)...');
-    const realBaseline = await executeBenchmark({
+    console.log('[3/7] Executing real benchmark against live server (N=400 requests with 50/50 train/validation split)...');
+    // Warm up Fastify server
+    await executeBenchmark({ targetUrl, totalRequests: 50, concurrency: 4 });
+
+    const fullBenchmark = await executeBenchmark({
       targetUrl,
-      totalRequests: 300,
+      totalRequests: 400,
       concurrency: 8,
     });
-    console.log(`      Real Benchmark p50: ${realBaseline.p50Us}us, p90: ${realBaseline.p90Us}us, Mean: ${realBaseline.meanLatencyUs}us`);
-    assert.strictEqual(realBaseline.successfulRequests, 300);
-    console.log('✓ Real benchmark baseline captured successfully\n');
+    assert.strictEqual(fullBenchmark.successfulRequests, 400);
+
+    // Formally split empirical samples into Calibration (Train) and Held-Out Validation datasets
+    const calSamples = fullBenchmark.samplesUs.filter((_, idx) => idx % 2 === 0);
+    const valSamples = fullBenchmark.samplesUs.filter((_, idx) => idx % 2 === 1);
+
+    const summarize = (samples: number[]) => {
+      const sorted = [...samples].sort((a, b) => a - b);
+      return {
+        p50Us: sorted[Math.floor(sorted.length * 0.5)] ?? 0,
+        p90Us: sorted[Math.floor(sorted.length * 0.9)] ?? 0,
+        p95Us: sorted[Math.floor(sorted.length * 0.95)] ?? 0,
+        p99Us: sorted[Math.floor(sorted.length * 0.99)] ?? 0,
+        meanLatencyUs: Math.round(samples.reduce((a, b) => a + b, 0) / (samples.length || 1)),
+        throughputRps: fullBenchmark.throughputRps,
+        samplesUs: samples,
+      };
+    };
+
+    const realBaseline = summarize(calSamples);
+    const validationBaseline = summarize(valSamples);
+    console.log(`      Calibration Baseline (N=${calSamples.length}) p50: ${realBaseline.p50Us}us, p90: ${realBaseline.p90Us}us, Mean: ${realBaseline.meanLatencyUs}us`);
+    console.log(`      Held-Out Validation  (N=${valSamples.length}) p50: ${validationBaseline.p50Us}us, p90: ${validationBaseline.p90Us}us, Mean: ${validationBaseline.meanLatencyUs}us`);
+    console.log('✓ Real benchmark calibration & held-out validation datasets captured successfully\n');
 
     // -------------------------------------------------------------------------
     // [4/7] Complete Closed-Loop Execution (Model -> Sim -> Compare -> Calibrate -> Re-sim -> Validate)
     // -------------------------------------------------------------------------
-    console.log('[4/7] Executing complete closed-loop calibration pipeline...');
+    console.log('[4/7] Executing complete closed-loop calibration & validation pipeline...');
     const calibrationEngine = new CalibrationEngine();
 
     // Simulation model where latency scales with parameter 'internal_processing_time'
@@ -155,18 +179,24 @@ async function runM6Gate() {
         },
       ],
       realBenchmark: realBaseline,
+      validationBenchmark: validationBaseline,
       simulator,
     });
 
     console.log(`      Initial Comparison Verdict: ${closedLoop.initialReport.verdict} (MAPE: ${(closedLoop.initialReport.mape * 100).toFixed(2)}%)`);
-    console.log(`      Final Comparison Verdict:   ${closedLoop.finalReport.verdict} (MAPE: ${(closedLoop.finalReport.mape * 100).toFixed(2)}%)`);
+    console.log(`      Calibrated Dataset Verdict: ${closedLoop.finalReport.verdict} (MAPE: ${(closedLoop.finalReport.mape * 100).toFixed(2)}%)`);
+    console.log(`      Validation Dataset Verdict: ${closedLoop.validationReport?.verdict} (MAPE: ${((closedLoop.validationReport?.mape ?? 0) * 100).toFixed(2)}%)`);
+    console.log(`      Model Status Evolution:     UNCALIBRATED -> CALIBRATED -> ${closedLoop.modelStatus}`);
     console.log(`      Prediction Interval Enclosed: ${closedLoop.finalReport.predictionIntervalEnclosed}`);
 
     assert.notStrictEqual(closedLoop.initialReport.verdict, 'ALIGNED', 'Initial run must not be aligned');
-    assert.strictEqual(closedLoop.finalReport.verdict, 'ALIGNED', 'Final calibrated model must achieve ALIGNED verdict');
+    assert.strictEqual(closedLoop.finalReport.verdict, 'ALIGNED', 'Final calibrated model must achieve ALIGNED verdict on calibration dataset');
     assert.strictEqual(closedLoop.isAligned, true);
+    assert.strictEqual(closedLoop.validationReport?.verdict, 'ALIGNED', 'Model must achieve ALIGNED on held-out validation dataset');
+    assert.strictEqual(closedLoop.isValidated, true);
+    assert.strictEqual(closedLoop.modelStatus, 'VALIDATED', 'Model must advance to VALIDATED status');
     assert.strictEqual(closedLoop.finalReport.predictionIntervalEnclosed, true);
-    console.log('✓ Closed loop achieved convergence: Model -> Sim -> Compare -> Calibrate -> Re-sim -> ALIGNED!\n');
+    console.log('✓ Closed loop achieved convergence: Model -> Sim -> Compare -> Calibrate -> Re-sim -> CALIBRATED -> VALIDATED!\n');
 
     // -------------------------------------------------------------------------
     // [5/7] Parameter Deltas and Evolution Tracking

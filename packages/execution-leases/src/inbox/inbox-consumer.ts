@@ -1,5 +1,10 @@
 import { db, inboxEvents, and, eq } from '@blackbox-x/db';
 
+/**
+ * Enforces idempotent at-least-once message processing with transactional deduplication
+ * against MySQL `inbox_events`, guaranteeing an effectively-once committed database side effect
+ * per (eventId, consumerName).
+ */
 export class InboxConsumer {
   async consumeWithIdempotency<T = void>(
     eventId: string,

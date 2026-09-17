@@ -1,3 +1,5 @@
+export type ModelStatus = 'UNCALIBRATED' | 'CALIBRATED' | 'VALIDATED';
+
 export interface CalibrationParameter {
   name: string;
   currentValue: number;

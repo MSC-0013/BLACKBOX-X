@@ -111,7 +111,72 @@ describe('Calibration Package', () => {
       expect(result.initialReport.verdict).not.toBe('ALIGNED');
       expect(result.finalReport.verdict).toBe('ALIGNED');
       expect(result.isAligned).toBe(true);
+      expect(result.modelStatus).toBe('CALIBRATED');
       expect(result.calibrationResult.finalLoss).toBeLessThan(result.calibrationResult.initialLoss);
+    });
+
+    it('evaluates calibrated model on held-out validation benchmark to achieve VALIDATED status', async () => {
+      const engine = new CalibrationEngine();
+
+      const calibrationBenchmark = {
+        p50Us: 5000,
+        p90Us: 7500,
+        p95Us: 8750,
+        p99Us: 11250,
+        meanLatencyUs: 5500,
+        throughputRps: 500,
+        samplesUs: [4800, 5000, 5200, 7500, 11250],
+      };
+
+      // Independent held-out validation dataset split
+      const heldOutValidationBenchmark = {
+        p50Us: 5050,
+        p90Us: 7580,
+        p95Us: 8800,
+        p99Us: 11300,
+        meanLatencyUs: 5550,
+        throughputRps: 500,
+        samplesUs: [4850, 5050, 5250, 7580, 11300],
+      };
+
+      const result = await engine.executeClosedLoop({
+        parameters: [
+          {
+            name: 'service_latency',
+            currentValue: 1500, // Miscalibrated initial value
+            minValue: 1000,
+            maxValue: 10000,
+          },
+        ],
+        realBenchmark: calibrationBenchmark,
+        validationBenchmark: heldOutValidationBenchmark,
+        simulator: async (params) => {
+          const base = params.service_latency;
+          return {
+            p50Us: base,
+            p90Us: Math.round(base * 1.5),
+            p95Us: Math.round(base * 1.75),
+            p99Us: Math.round(base * 2.25),
+            meanLatencyUs: Math.round(base * 1.1),
+            throughputRps: 500,
+            predictionInterval: [Math.round(base * 0.85), Math.round(base * 1.15)] as [number, number],
+            samplesUs: [
+              Math.round(base * 0.96),
+              base,
+              Math.round(base * 1.04),
+              Math.round(base * 1.5),
+              Math.round(base * 2.25),
+            ],
+          };
+        },
+      });
+
+      expect(result.initialReport.verdict).not.toBe('ALIGNED');
+      expect(result.finalReport.verdict).toBe('ALIGNED');
+      expect(result.validationReport).toBeDefined();
+      expect(result.validationReport?.verdict).toBe('ALIGNED');
+      expect(result.isValidated).toBe(true);
+      expect(result.modelStatus).toBe('VALIDATED');
     });
   });
 });

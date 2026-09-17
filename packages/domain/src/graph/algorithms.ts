@@ -90,14 +90,15 @@ export function classifyCycle(
   }
 
   if (hasAsyncEdge && !hasSyncEdge && hasMessageBrokerNode) {
-    // Purely asynchronous broker-mediated loop
+    // Purely asynchronous broker-mediated loop: permitted under bounded execution policy
+    const effectiveGuard = guard ?? { maxHops: 32 };
     return {
       path,
       edges,
       classification: 'ASYNC_EVENT_DRIVEN',
       permitted: true,
       reason:
-        'Asynchronous broker-mediated loop: event-driven asynchronous feedback loops are valid.',
+        `Asynchronous broker-mediated loop: event-driven asynchronous feedback loops are permitted under bounded execution policy (maxHops=${effectiveGuard.maxHops ?? 32}).`,
     };
   }
 

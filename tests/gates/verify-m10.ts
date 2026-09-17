@@ -34,9 +34,9 @@ function verifyNoMockInGates(dir: string): void {
 }
 
 async function runM10Gate() {
-  console.log('===============================================================');
-  console.log(' BLACKBOX-X M10 GATE: Storage Tier Resilience & Object Store   ');
-  console.log('===============================================================\n');
+  console.log('========================================================================');
+  console.log(' BLACKBOX-X M10 GATE: Object Storage, Artifact Integrity & Lifecycle   ');
+  console.log('========================================================================\n');
 
   // Verify No-Mock Rule
   verifyNoMockInGates(path.join(REPO_ROOT, 'tests', 'gates'));
