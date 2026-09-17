@@ -47,6 +47,8 @@ export class CapacitySearchEngine {
       bottleneck,
       steps: bisectionResult.steps,
       sloSatisfied,
+      strategy: bisectionResult.strategy,
+      nonMonotonicDetected: bisectionResult.nonMonotonicDetected,
     };
   }
 }

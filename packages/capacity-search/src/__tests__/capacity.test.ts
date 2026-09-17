@@ -29,15 +29,18 @@ describe('Capacity Search Package', () => {
       expect(result.steps.length).toBeGreaterThan(0);
     });
 
-    it('flags non-monotonic degradation curves', async () => {
-      let callCount = 0;
+    it('flags non-monotonic degradation curves and falls back to adaptive sweep', async () => {
+      // Non-monotonic curve: passes at 100, fails at 397 (lock contention), passes at 694 (load-shedding false latency drop), fails at 1000
       const evaluator = async (rps: number) => {
-        callCount++;
-        // Step 2 sheds load causing artificial latency drop with high errors
-        if (callCount === 2) {
-          return { p99Us: 5000, errorRate: 0.5 };
+        if (rps >= 300 && rps < 500) {
+          // Contention region: high latency
+          return { p99Us: 80_000, errorRate: 0.05 };
         }
-        return { p99Us: rps * 100, errorRate: 0.0 };
+        if (rps >= 500 && rps < 800) {
+          // Load shedding region: false latency drop but error rate spike
+          return { p99Us: 20_000, errorRate: 0.20 };
+        }
+        return { p99Us: rps * 30, errorRate: 0.0 };
       };
 
       const result = await runBisectionSearch({
@@ -48,6 +51,8 @@ describe('Capacity Search Package', () => {
         evaluator,
       });
 
+      expect(result.nonMonotonicDetected).toBe(true);
+      expect(result.strategy).toBe('ADAPTIVE_SWEEP');
       expect(result.steps.length).toBeGreaterThan(0);
     });
   });

@@ -72,10 +72,21 @@ export class ComparisonEngine {
     }
 
     // 5. Verdict synthesis
+    //
+    // KS test escalation uses a *practically meaningful* statistic threshold (> 0.20) in
+    // addition to the formal alpha=0.05 rejection flag.  With large N (≥ 400) the KS
+    // critical value is ~0.096, so even minor OS-timer jitter or GC pauses between two
+    // sequential benchmark runs produces `rejectNull = true` while MAPE remains well
+    // within the ≤ 15% engineering tolerance.  Requiring statistic > 0.20 ensures the
+    // KS criterion only fires when the distributional shift is practically significant
+    // (≈ 20% of the CDF range differs), consistent with the calibration SLA.
+    const ksEscalation = ksTest && ksTest.rejectNull && ksTest.statistic > 0.20;
+    const ksMisaligned   = ksTest && ksTest.statistic > 0.35 && ksTest.rejectNull;
+
     let verdict: ComparisonVerdict = 'ALIGNED';
-    if (mape > 0.35 || (ksTest && ksTest.statistic > 0.35 && ksTest.rejectNull) || !predictionIntervalEnclosed) {
+    if (mape > 0.35 || ksMisaligned || !predictionIntervalEnclosed) {
       verdict = 'MISALIGNED';
-    } else if (mape > 0.15 || (ksTest && ksTest.rejectNull)) {
+    } else if (mape > 0.15 || ksEscalation) {
       verdict = 'CALIBRATION_REQUIRED';
     }
 

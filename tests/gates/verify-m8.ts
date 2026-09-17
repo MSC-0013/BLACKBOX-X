@@ -128,59 +128,60 @@ async function runM8Gate() {
     assert.doesNotThrow(() => {
       EpochFenceGuard.assertValidEpoch(resourceId, leaseB.epoch, leaseB.epoch);
     });
-    console.log('✓ Epoch fencing successfully prevents stale/split-brain writes\n');
+    console.log('      Authoritative check against MySQL execution_leases via EpochFenceGuard');
+    await EpochFenceGuard.assertValidEpochFromDb(resourceId, 2);
+    let dbFenceCaught = false;
+    try {
+      await EpochFenceGuard.assertValidEpochFromDb(resourceId, 1);
+    } catch (err: unknown) {
+      dbFenceCaught = true;
+      assert.ok((err as Error).message.includes('STALE_EPOCH_FENCED'));
+    }
+    assert.strictEqual(dbFenceCaught, true, 'MySQL authoritative epoch check must reject stale epoch');
+    console.log('✓ Epoch fencing successfully prevents stale/split-brain writes with MySQL authority\n');
 
     // -------------------------------------------------------------------------
-    // [4/7] Transactional Outbox Event Creation
+    // [4/7] Transactional Outbox Event Creation in MySQL 8.4
     // -------------------------------------------------------------------------
     console.log('[4/7] Testing transactional outbox event creation in MySQL 8.4...');
-    const outboxEvent = await outboxRelay.queueEvent({
+    const outboxEvt = await outboxRelay.queueEvent({
       aggregateType: 'CAMPAIGN_RUN',
-      aggregateId: resourceId,
-      eventType: 'CAMPAIGN_RUN_COMPLETED',
-      payload: {
-        resourceId,
-        status: 'SUCCESS',
-        metrics: { throughput: 450, errorRate: 0 },
-      },
-      epoch: leaseB.epoch,
+      aggregateId: `crun-${Date.now()}`,
+      eventType: 'CAMPAIGN_STARTED',
+      payload: { campaignId: resourceId, workers: 2 },
+      epoch: 2,
     });
-
-    assert.strictEqual(outboxEvent.status, 'PENDING');
-    assert.strictEqual(outboxEvent.status, 'PENDING');
-    assert.strictEqual(outboxEvent.epoch, leaseB.epoch);
+    assert.strictEqual(outboxEvt.status, 'PENDING');
 
     const [persistedEvt] = await db
       .select()
       .from(outboxEvents)
-      .where(eq(outboxEvents.id, outboxEvent.id));
-
-    assert.ok(persistedEvt, 'Outbox event must exist in database');
-    assert.strictEqual(persistedEvt.publishedAt, null, 'Pending event publishedAt must be null');
-    console.log(`      Queued Outbox Event: ${persistedEvt.id} (aggregate: ${persistedEvt.aggregateType})`);
+      .where(eq(outboxEvents.id, outboxEvt.id));
+    assert.ok(persistedEvt);
+    assert.strictEqual(persistedEvt.aggregateVersion, 2);
+    assert.strictEqual(persistedEvt.publishedAt, null);
+    console.log(`      Queued Outbox Event: ${outboxEvt.id} (aggregate: ${persistedEvt.aggregateType})`);
     console.log('✓ Transactional outbox event created and verified in MySQL 8.4\n');
 
     // -------------------------------------------------------------------------
-    // [5/7] Outbox Relay Dispatch to Real Kafka Broker
+    // [5/7] Outbox Relay Publishing to Kafka (system-events.v1)
     // -------------------------------------------------------------------------
     console.log('[5/7] Testing OutboxRelay publishing pending events to Kafka (system-events.v1)...');
-    await outboxRelay.connect();
-    const publishedCount = await outboxRelay.relayPendingEvents(10);
-    assert.ok(publishedCount >= 1, 'At least 1 outbox event must be published');
+    const publishedCount = await outboxRelay.relayPendingEvents();
+    assert.strictEqual(publishedCount, 1);
 
-    const [updatedEvt] = await db
+    const [relayedEvt] = await db
       .select()
       .from(outboxEvents)
-      .where(eq(outboxEvents.id, outboxEvent.id));
-
-    assert.ok(updatedEvt?.publishedAt !== null, 'publishedAt timestamp must be populated');
-    console.log(`      Relayed ${publishedCount} event(s) to Kafka broker, publishedAt: ${updatedEvt?.publishedAt?.toISOString()}`);
+      .where(eq(outboxEvents.id, outboxEvt.id));
+    assert.ok(relayedEvt.publishedAt !== null);
+    console.log(`      Relayed ${publishedCount} event(s) to Kafka broker, publishedAt: ${relayedEvt.publishedAt?.toISOString()}`);
     console.log('✓ Outbox relay successfully published events to Kafka and updated MySQL\n');
 
     // -------------------------------------------------------------------------
-    // [6/7] Idempotent At-Least-Once Processing with Transactional Deduplication
+    // [6/7] Idempotent At-Least-Once Processing & Outbox Crash-Window Deduplication
     // -------------------------------------------------------------------------
-    console.log('[6/7] Testing InboxConsumer idempotent at-least-once processing with transactional deduplication...');
+    console.log('[6/7] Testing Outbox crash-window redelivery & InboxConsumer transactional deduplication...');
     const testEventId = `evt-inbox-test-${Date.now()}`;
     const consumerGroup = 'analytics-workers';
     let executionCounter = 0;
@@ -201,7 +202,25 @@ async function runM8Gate() {
     assert.strictEqual(res2.duplicate, true);
     assert.strictEqual(executionCounter, 1, 'Execution counter must NOT increment on duplicate');
 
-    console.log(`      Handler Executions: ${executionCounter} (1 expected despite 2 deliveries)`);
+    // Simulate crash window: Kafka publish succeeded, but worker crashed before MySQL published_at update
+    // Upon restart, relay re-delivers the event, but inbox_events table absorbs it idempotently
+    const crashEventId = `evt-crash-window-${Date.now()}`;
+    let crashHandlerExecutions = 0;
+    const crashHandler = async () => {
+      crashHandlerExecutions++;
+    };
+
+    // First delivery
+    await inboxConsumer.consumeWithIdempotency(crashEventId, consumerGroup, crashHandler);
+    assert.strictEqual(crashHandlerExecutions, 1);
+
+    // Re-delivered after simulated crash
+    const redelivered = await inboxConsumer.consumeWithIdempotency(crashEventId, consumerGroup, crashHandler);
+    assert.strictEqual(redelivered.processed, false);
+    assert.strictEqual(redelivered.duplicate, true);
+    assert.strictEqual(crashHandlerExecutions, 1, 'Crash-window redelivery must be safely absorbed by inbox_events');
+
+    console.log(`      Handler Executions: ${executionCounter}, Crash-Window Redelivery Executions: ${crashHandlerExecutions} (exactly 1 effect)`);
     console.log('✓ Idempotent at-least-once processing with transactional deduplication (effectively-once DB side-effect) verified\n');
 
     // -------------------------------------------------------------------------

@@ -109,9 +109,9 @@ async function runM9Gate() {
     console.log('✓ Circuit breaker trip and error injection verified\n');
 
     // -------------------------------------------------------------------------
-    // [3/7] Topological Blast Radius & Upstream Cascade Detection
+    // [3/7] Topological Blast Radius & Cycle-Safe Cascade Traversal
     // -------------------------------------------------------------------------
-    console.log('[3/7] Analyzing failure cascade propagation across topology DAG...');
+    console.log('[3/7] Analyzing failure cascade propagation across directed topology graph (with cycle-safe visited-state tracking)...');
     // Ingress -> OrderService -> PrimaryDB
     // Ingress -> PaymentService -> PrimaryDB
     const topologyEdges = [
@@ -129,15 +129,30 @@ async function runM9Gate() {
     assert.ok(cascade.upstreamNodeIds.includes('ingress-gateway'));
     assert.strictEqual(cascade.isCascade, true, 'Multi-tier failure must be flagged as cascade');
 
+    // Cycle-safe traversal check: graph containing a Kafka-mediated feedback loop
+    const cyclicEdges = [
+      { sourceNodeId: 'order-svc', targetNodeId: 'kafka-broker', edgeKind: 'KAFKA_PUBLISH' },
+      { sourceNodeId: 'kafka-broker', targetNodeId: 'notification-svc', edgeKind: 'KAFKA_CONSUME' },
+      { sourceNodeId: 'notification-svc', targetNodeId: 'kafka-broker', edgeKind: 'KAFKA_PUBLISH' },
+      { sourceNodeId: 'kafka-broker', targetNodeId: 'order-svc', edgeKind: 'KAFKA_CONSUME' },
+      { sourceNodeId: 'order-svc', targetNodeId: 'primary-db', edgeKind: 'DB_QUERY' },
+    ];
+    const cyclicCascade = CascadeAnalyzer.analyzeBlastRadius('primary-db', cyclicEdges);
+    assert.strictEqual(cyclicCascade.targetNodeId, 'primary-db');
+    assert.strictEqual(cyclicCascade.blastRadius, 3);
+    assert.ok(cyclicCascade.upstreamNodeIds.includes('order-svc'));
+    assert.ok(cyclicCascade.upstreamNodeIds.includes('kafka-broker'));
+    assert.ok(cyclicCascade.upstreamNodeIds.includes('notification-svc'));
+
     console.log(`      Target Node:   ${cascade.targetNodeId}`);
     console.log(`      Blast Radius:  ${cascade.blastRadius} upstream components`);
-    console.log(`      Cascade Depth: ${cascade.depth} tiers`);
-    console.log('✓ Cascade propagation and blast radius accurately attributed\n');
+    console.log(`      Cascade Depth: ${cascade.depth} tiers (cycle-safe traversal verified on async loop)`);
+    console.log('✓ Cascade propagation and blast radius accurately attributed across cyclic and acyclic graphs\n');
 
     // -------------------------------------------------------------------------
-    // [4/7] Resilience Metrics & Score Evaluation
+    // [4/7] BLACKBOX-X Resilience Score & Simulated MTTR Evaluation
     // -------------------------------------------------------------------------
-    console.log('[4/7] Evaluating platform Resilience Score and MTTR...');
+    console.log('[4/7] Evaluating BLACKBOX-X Resilience Score and simulated MTTR...');
     const resilience = ResilienceEvaluator.evaluate({
       blastRadius: cascade.blastRadius,
       cascadeDetected: cascade.isCascade,
@@ -154,9 +169,9 @@ async function runM9Gate() {
     assert.strictEqual(resilience.blastRadius, 3);
     assert.strictEqual(resilience.cascadeDetected, true);
 
-    console.log(`      Resilience Score: ${resilience.resilienceScore.toFixed(2)} / 100`);
-    console.log(`      MTTR:             ${resilience.mttrMs} ms`);
-    console.log('✓ Resilience score and MTTR computed accurately\n');
+    console.log(`      BLACKBOX-X Resilience Score: ${resilience.resilienceScore.toFixed(2)} / 100`);
+    console.log(`      Simulated MTTR:              ${resilience.mttrMs} ms`);
+    console.log('✓ BLACKBOX-X Resilience Score and simulated MTTR computed accurately\n');
 
     // -------------------------------------------------------------------------
     // [5/7] End-to-End Chaos Experiment Execution

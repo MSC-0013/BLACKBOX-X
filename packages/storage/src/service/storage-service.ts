@@ -143,4 +143,98 @@ export class StorageService {
 
     await db.delete(storedArtifacts).where(eq(storedArtifacts.objectKey, objectKey));
   }
+
+  /**
+   * Uploads an immutable, content-addressed artifact keyed by its SHA-256 digest.
+   * The object key is deterministic: `traces/tenant-${tenantId}/${sha256}.json`.
+   * Re-uploading the same content is idempotent (same key → same object in MinIO).
+   */
+  async uploadContentAddressedArtifact(params: {
+    tenantId: string;
+    content: string | Buffer;
+    metadata?: Record<string, unknown>;
+  }): Promise<StoredArtifactRecord> {
+    const buffer = typeof params.content === 'string' ? Buffer.from(params.content, 'utf-8') : params.content;
+    const sha256Checksum = createHash('sha256').update(buffer).digest('hex');
+    const objectKey = `traces/tenant-${params.tenantId}/${sha256Checksum}.json`;
+
+    // Content-addressed idempotency: if this exact object already exists, return the
+    // existing record rather than re-inserting (avoids ER_DUP_ENTRY on re-upload).
+    const [existing] = await db
+      .select()
+      .from(storedArtifacts)
+      .where(eq(storedArtifacts.objectKey, objectKey));
+
+    if (existing) {
+      return {
+        id: existing.id,
+        tenantId: existing.tenantId,
+        bucketName: existing.bucketName,
+        objectKey: existing.objectKey,
+        contentType: existing.contentType,
+        sizeBytes: existing.sizeBytes,
+        sha256Checksum: existing.sha256Checksum,
+        metadata: existing.metadata as Record<string, unknown> | undefined,
+        createdAt: existing.createdAt,
+      };
+    }
+
+    return this.uploadArtifact({
+      tenantId: params.tenantId,
+      objectKey,
+      content: buffer,
+      contentType: 'application/json',
+      metadata: params.metadata,
+    });
+  }
+
+  /**
+   * Downloads an artifact, asserting the requesting tenant owns it.
+   * Throws FORBIDDEN_CROSS_TENANT_ACCESS if the tenantId does not match.
+   */
+  async downloadArtifactForTenant(objectKey: string, requestingTenantId: string): Promise<Buffer> {
+    const [record] = await db
+      .select()
+      .from(storedArtifacts)
+      .where(eq(storedArtifacts.objectKey, objectKey));
+
+    if (!record) {
+      throw new Error(`Artifact not found: ${objectKey}`);
+    }
+    if (record.tenantId !== requestingTenantId) {
+      const err = new Error(
+        `Cross-tenant access denied: artifact belongs to tenant '${record.tenantId}', ` +
+        `but was requested by tenant '${requestingTenantId}'`,
+      );
+      (err as Error & { code: string }).code = 'FORBIDDEN_CROSS_TENANT_ACCESS';
+      throw err;
+    }
+
+    return this.downloadArtifact(objectKey);
+  }
+
+  /**
+   * Deletes an artifact, asserting the requesting tenant owns it.
+   * Throws FORBIDDEN_CROSS_TENANT_ACCESS if the tenantId does not match.
+   */
+  async deleteArtifactForTenant(objectKey: string, requestingTenantId: string): Promise<void> {
+    const [record] = await db
+      .select()
+      .from(storedArtifacts)
+      .where(eq(storedArtifacts.objectKey, objectKey));
+
+    if (!record) {
+      throw new Error(`Artifact not found: ${objectKey}`);
+    }
+    if (record.tenantId !== requestingTenantId) {
+      const err = new Error(
+        `Cross-tenant access denied: artifact belongs to tenant '${record.tenantId}', ` +
+        `but was requested by tenant '${requestingTenantId}'`,
+      );
+      (err as Error & { code: string }).code = 'FORBIDDEN_CROSS_TENANT_ACCESS';
+      throw err;
+    }
+
+    return this.deleteArtifact(objectKey);
+  }
 }

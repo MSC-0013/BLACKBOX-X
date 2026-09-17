@@ -1,3 +1,5 @@
+import { db, executionLeases, eq } from '@blackbox-x/db';
+
 export class EpochFenceError extends Error {
   readonly claimedEpoch: number;
   readonly activeEpoch: number;
@@ -18,6 +20,17 @@ export class EpochFenceGuard {
   static assertValidEpoch(resourceId: string, claimedEpoch: number, activeEpoch: number): void {
     if (claimedEpoch < activeEpoch) {
       throw new EpochFenceError(resourceId, claimedEpoch, activeEpoch);
+    }
+  }
+
+  static async assertValidEpochFromDb(resourceId: string, claimedEpoch: number): Promise<void> {
+    const [record] = await db
+      .select({ epoch: executionLeases.epoch })
+      .from(executionLeases)
+      .where(eq(executionLeases.resourceId, resourceId));
+
+    if (record && claimedEpoch < record.epoch) {
+      throw new EpochFenceError(resourceId, claimedEpoch, record.epoch);
     }
   }
 }

@@ -28,6 +28,38 @@ export class TelemetryAggregator {
     return telemetries;
   }
 
+  /**
+   * Reference quantile aggregation for Item 21.
+   * Given multiple worker latency arrays, merges them and computes quantiles
+   * using a pure order-statistic approach (independent of the live aggregate() path).
+   * Used as a deterministic ground-truth to cross-check the live aggregation.
+   */
+  static computeQuantile(sorted: number[], q: number): number {
+    if (sorted.length === 0) return 0;
+    const idx = Math.min(Math.floor(sorted.length * q), sorted.length - 1);
+    return sorted[idx] ?? 0;
+  }
+
+  static mergeQuantilesReference(
+    workerLatencies: number[][],
+  ): { p50Us: number; p90Us: number; p95Us: number; p99Us: number; meanUs: number } {
+    const merged: number[] = [];
+    for (const arr of workerLatencies) {
+      merged.push(...arr);
+    }
+    merged.sort((a, b) => a - b);
+
+    const meanUs = merged.length > 0 ? merged.reduce((s, v) => s + v, 0) / merged.length : 0;
+
+    return {
+      p50Us: TelemetryAggregator.computeQuantile(merged, 0.50),
+      p90Us: TelemetryAggregator.computeQuantile(merged, 0.90),
+      p95Us: TelemetryAggregator.computeQuantile(merged, 0.95),
+      p99Us: TelemetryAggregator.computeQuantile(merged, 0.99),
+      meanUs,
+    };
+  }
+
   aggregate(
     runId: string,
     telemetries: WorkerTelemetry[],

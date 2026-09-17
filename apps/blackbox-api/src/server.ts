@@ -11,6 +11,8 @@ import {
   type SystemDependenciesStatus,
 } from './health.js';
 import { topologyRoutes } from './routes/topology.js';
+import { analyticsRoutes } from './routes/analytics.js';
+import { defaultMetricsRegistry } from '@blackbox-x/observability';
 
 const log = createLogger('blackbox-api');
 
@@ -34,6 +36,16 @@ export function buildServer(options: ServerOptions = {}): FastifyInstance {
   });
 
   app.register(topologyRoutes);
+  app.register(analyticsRoutes);
+
+  // 5. Prometheus Metrics (standard exposition format with low-cardinality labels)
+  app.get('/metrics', async (_req, reply) => {
+    const text = defaultMetricsRegistry.getMetricsText();
+    return reply
+      .header('Content-Type', 'text/plain; version=0.0.4; charset=utf-8')
+      .status(200)
+      .send(text);
+  });
 
   // Global error handler adhering to Part 8.11 standard error envelope
   app.setErrorHandler((error, request, reply) => {

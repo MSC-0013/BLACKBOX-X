@@ -154,6 +154,17 @@ export class LeaseManager {
   }
 
   async getCurrentEpoch(resourceId: string): Promise<number> {
+    // Authoritative check against MySQL execution_leases table
+    const [record] = await db
+      .select({ epoch: executionLeases.epoch })
+      .from(executionLeases)
+      .where(eq(executionLeases.resourceId, resourceId));
+
+    if (record) {
+      return record.epoch;
+    }
+
+    // Fallback to Redis coordination cache if not yet persisted in MySQL
     const epochKey = `blackbox:lease_epoch:${resourceId}`;
     const raw = await this.redis.get(epochKey);
     return raw ? parseInt(raw, 10) : 0;

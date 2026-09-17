@@ -24,10 +24,14 @@ export interface BottleneckAttribution {
   recommendation: string;
 }
 
+export type SearchStrategy = 'BISECTION' | 'ADAPTIVE_SWEEP';
+
 export interface CapacitySearchResult {
   maxSustainableRps: number;
   kneePoint?: KneePointResult;
   bottleneck?: BottleneckAttribution;
   steps: CapacitySearchStep[];
   sloSatisfied: boolean;
+  strategy?: SearchStrategy;
+  nonMonotonicDetected?: boolean;
 }

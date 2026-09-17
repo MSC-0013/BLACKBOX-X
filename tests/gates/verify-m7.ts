@@ -198,6 +198,33 @@ async function runM7Gate() {
     assert.ok(clusterSummary.p50Us <= clusterSummary.p90Us, 'p50 <= p90');
     assert.ok(clusterSummary.p90Us <= clusterSummary.p99Us, 'p90 <= p99');
 
+    // Item 21: Quantile aggregation reference test
+    // Cross-check live aggregate() against a separate, pure order-statistic reference.
+    const workerLatencyArrays = retrievedTelemetries
+      .map((t) => t.latenciesUs ?? [])
+      .filter((arr) => arr.length > 0);
+
+    if (workerLatencyArrays.length > 0) {
+      const ref = TelemetryAggregator.mergeQuantilesReference(workerLatencyArrays);
+      // Reference and live aggregate must agree exactly (both use same order-statistic formula)
+      assert.strictEqual(
+        clusterSummary.p50Us,
+        ref.p50Us,
+        `Live p50 (${clusterSummary.p50Us}) must match reference (${ref.p50Us})`,
+      );
+      assert.strictEqual(
+        clusterSummary.p90Us,
+        ref.p90Us,
+        `Live p90 (${clusterSummary.p90Us}) must match reference (${ref.p90Us})`,
+      );
+      assert.strictEqual(
+        clusterSummary.p99Us,
+        ref.p99Us,
+        `Live p99 (${clusterSummary.p99Us}) must match reference (${ref.p99Us})`,
+      );
+      console.log(`      Reference p50: ${ref.p50Us}us, p90: ${ref.p90Us}us, p99: ${ref.p99Us}us (matches live aggregate)`);
+    }
+
     console.log(`      Cluster Total Requests: ${clusterSummary.totalRequests}`);
     console.log(`      Cluster Throughput:     ${clusterSummary.actualRps.toFixed(2)} RPS`);
     console.log(`      Cluster p50:            ${clusterSummary.p50Us.toFixed(0)}us`);

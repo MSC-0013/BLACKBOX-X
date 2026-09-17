@@ -168,6 +168,61 @@ async function runM10Gate() {
       .where(eq(storedArtifacts.objectKey, binaryKey));
 
     assert.strictEqual(checkDb.length, 0, 'Deleted artifact must be removed from MySQL');
+
+    // -------------------------------------------------------------------------
+    // Item 19: Content-addressed checkpoint upload
+    // -------------------------------------------------------------------------
+    const caContent = JSON.stringify({ type: 'CONTENT_ADDRESSED_CHECKPOINT', ts: Date.now() });
+    const caRecord = await storageService.uploadContentAddressedArtifact({
+      tenantId: tenant.id,
+      content: caContent,
+    });
+    // Key must follow traces/tenant-{id}/{sha256}.json convention
+    assert.ok(caRecord.objectKey.startsWith(`traces/tenant-${tenant.id}/`), 'Content-addressed key must be tenant-scoped');
+    assert.ok(caRecord.objectKey.endsWith('.json'), 'Content-addressed key must end in .json');
+    assert.ok(caRecord.sha256Checksum.length === 64, 'SHA-256 checksum must be 64 hex chars');
+    // Re-uploading same content must be idempotent (same object key)
+    const caRecord2 = await storageService.uploadContentAddressedArtifact({
+      tenantId: tenant.id,
+      content: caContent,
+    });
+    assert.strictEqual(caRecord2.objectKey, caRecord.objectKey, 'Duplicate content must map to same content-addressed key');
+    console.log(`✓ Content-addressed checkpoint uploaded: ${caRecord.objectKey}`);
+
+    // -------------------------------------------------------------------------
+    // Item 20: Cross-tenant access negative assertion
+    // -------------------------------------------------------------------------
+    const crossTenantId = `tnt_cross_${Date.now()}`;
+    await pool.query('INSERT INTO tenants (id, slug, name) VALUES (?, ?, ?)', [
+      crossTenantId,
+      `slug-${crossTenantId}`,
+      'Cross-Tenant Test Tenant',
+    ]);
+
+    // Tenant B must NOT be able to download Tenant A's content-addressed artifact
+    let crossTenantDownloadRejected = false;
+    try {
+      await storageService.downloadArtifactForTenant(caRecord.objectKey, crossTenantId);
+    } catch (err: unknown) {
+      const e = err as Error & { code?: string };
+      crossTenantDownloadRejected = e.code === 'FORBIDDEN_CROSS_TENANT_ACCESS';
+    }
+    assert.strictEqual(crossTenantDownloadRejected, true, 'Tenant B must not be able to read Tenant A artifacts');
+
+    // Tenant B must NOT be able to delete Tenant A's artifact
+    let crossTenantDeleteRejected = false;
+    try {
+      await storageService.deleteArtifactForTenant(caRecord.objectKey, crossTenantId);
+    } catch (err: unknown) {
+      const e = err as Error & { code?: string };
+      crossTenantDeleteRejected = e.code === 'FORBIDDEN_CROSS_TENANT_ACCESS';
+    }
+    assert.strictEqual(crossTenantDeleteRejected, true, 'Tenant B must not be able to delete Tenant A artifacts');
+    console.log('✓ Cross-tenant access correctly rejected with FORBIDDEN_CROSS_TENANT_ACCESS\n');
+
+    // Cleanup
+    await storageService.deleteArtifact(caRecord.objectKey);
+    await pool.query('DELETE FROM tenants WHERE id = ?', [crossTenantId]);
     console.log('✓ Artifact deletion cleaned up from MinIO and MySQL\n');
 
     // -------------------------------------------------------------------------

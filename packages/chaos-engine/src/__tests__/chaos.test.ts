@@ -85,4 +85,22 @@ describe('ChaosEngine Unit Tests', () => {
     expect(result.chaosMetrics.p99Us).toBeGreaterThan(result.baselineMetrics.p99Us);
     expect(result.resilience.blastRadius).toBe(1);
   });
+
+  it('terminates cleanly on a directed topology graph containing an async feedback loop', () => {
+    // Cyclic topology: Order -> Kafka -> Notification -> Kafka -> Order -> DB
+    const cyclicEdges = [
+      { sourceNodeId: 'order', targetNodeId: 'kafka', edgeKind: 'KAFKA_PUBLISH' },
+      { sourceNodeId: 'kafka', targetNodeId: 'notification', edgeKind: 'KAFKA_CONSUME' },
+      { sourceNodeId: 'notification', targetNodeId: 'kafka', edgeKind: 'KAFKA_PUBLISH' },
+      { sourceNodeId: 'kafka', targetNodeId: 'order', edgeKind: 'KAFKA_CONSUME' },
+      { sourceNodeId: 'order', targetNodeId: 'db', edgeKind: 'DB_QUERY' },
+    ];
+
+    const result = CascadeAnalyzer.analyzeBlastRadius('db', cyclicEdges);
+    expect(result.targetNodeId).toBe('db');
+    expect(result.upstreamNodeIds).toContain('order');
+    expect(result.upstreamNodeIds).toContain('kafka');
+    expect(result.upstreamNodeIds).toContain('notification');
+    expect(result.blastRadius).toBe(3);
+  });
 });
