@@ -64,6 +64,22 @@ export function buildServer(options: ServerOptions = {}): FastifyInstance {
     );
   });
 
+  // Root Service Overview
+  app.get('/', async (_req, reply) => {
+    return reply.status(200).send({
+      service: 'BLACKBOX-X Discrete-Event Simulation Engine',
+      status: 'ONLINE',
+      version: '0.1.0',
+      description: 'Deterministic virtual time queueing simulation platform for production distributed systems',
+      endpoints: {
+        live: '/health/live',
+        startup: '/health/startup',
+        metrics: '/metrics',
+        dependencies: '/health/dependencies'
+      }
+    });
+  });
+
   // 1. Liveness Probe (pure process check, zero external calls)
   app.get('/health/live', async (_req, reply) => {
     return reply.status(200).send({ status: 'ok' });
