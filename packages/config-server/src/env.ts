@@ -33,7 +33,7 @@ export const serverEnvSchema = z.object({
   MINIO_ENDPOINT: z.string().default('http://localhost:9000'),
   MINIO_ACCESS_KEY: z.string().default('minioadmin'),
   MINIO_SECRET_KEY: z.string().default('minioadmin'),
-  API_PORT: z.coerce.number().int().positive().default(4000),
+  API_PORT: z.coerce.number().int().positive().default(Number(process.env['PORT']) || 4000),
   SESSION_SECRET: z
     .string()
     .min(32)

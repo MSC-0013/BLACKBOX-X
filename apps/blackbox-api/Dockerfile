@@ -3,7 +3,7 @@ WORKDIR /app
 COPY package.json package-lock.json* ./
 COPY . .
 RUN npm install
-RUN npm run build --workspace=@blackbox-x/api
+RUN npx turbo run build
 
 FROM node:24-alpine AS runner
 WORKDIR /app
