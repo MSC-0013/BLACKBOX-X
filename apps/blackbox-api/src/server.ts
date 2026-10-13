@@ -142,7 +142,7 @@ export async function startServer(): Promise<FastifyInstance> {
   return server;
 }
 
-if (process.argv[1] && process.argv[1].endsWith('server.ts')) {
+if (process.argv[1] && (process.argv[1].endsWith('server.ts') || process.argv[1].endsWith('server.js'))) {
   startServer().catch((err) => {
     console.error('Startup error:', err);
     process.exit(1);
